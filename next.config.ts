@@ -1,4 +1,4 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -30,9 +30,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    turbo: {},
-  },
+  /* experimental: {}, */
+  turbopack: {},
   // This is to allow cross-origin requests from the development environment.
   allowedDevOrigins: ['https://*.cloudworkstations.dev'],
 };
