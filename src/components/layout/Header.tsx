@@ -270,6 +270,11 @@ export default function Header() {
                             <p className="text-[10px] font-bold text-white/50 mt-1.5 tracking-wider truncate max-w-[160px]">{user.email}</p>
                           </div>
                         </div>
+                        <Button asChild variant="outline" className="w-full rounded-2xl h-12 gap-3 font-bold text-xs uppercase tracking-widest bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => setMenuOpen(false)}>
+                          <Link href="/profile">
+                            <User className="h-4 w-4" /> My Profile
+                          </Link>
+                        </Button>
                         <Button variant="destructive" className="w-full rounded-2xl h-12 gap-3 font-black text-xs uppercase tracking-widest shadow-xl shadow-destructive/10" onClick={() => { handleSignOut(); setMenuOpen(false); }}>
                           <LogOut className="h-4 w-4" /> Sign Out
                         </Button>
@@ -285,7 +290,7 @@ export default function Header() {
             </Sheet>
           </div>
         </div>
-      </motion.header>
+      </motion.header >
     </>
   );
 }
