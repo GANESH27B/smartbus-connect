@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "map-background",
+      "description": "A stylized map of a city for the bus tracking background.",
+      "imageUrl": "https://images.unsplash.com/photo-1581922819941-6ab31ab79afc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc2NDA0OTMxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city map"
+    },
+    {
+      "id": "hero-bus",
+      "description": "A modern electric bus in a vibrant city at night.",
+      "imageUrl": "https://images.unsplash.com/photo-1660233868431-3b1372aef4d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwYnVzfGVufDB8fHx8MTc2NDEyNTYwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city bus"
+    },
+    {
+      "id": "cta-background",
+      "description": "A person looking at a phone with a transit map, waiting for a bus.",
+      "imageUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxidXMlMjB0cmF2ZWx8ZW58MHx8fHwxNzY0NTg0MjM3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bus travel"
+    }
+  ]
+}
