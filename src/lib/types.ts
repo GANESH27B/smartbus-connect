@@ -1,4 +1,4 @@
-export type Stop = {
+git branch -M mainexport type Stop = {
   id: string;
   name: string;
   lat: number;
