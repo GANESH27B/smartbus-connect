@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { planTripAction } from "@/app/(public)/trip-planner/actions";
 import type { TripPlan } from "@/lib/types";
+import { useAuth } from "@/context/AuthContext";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -91,12 +93,13 @@ export function TripPlanner() {
   }, [form]);
 
 
-  const [history, setHistory] = useState<{ inputs: z.infer<typeof formSchema>, plan: TripPlan, date: string }[]>([]);
+  const { user } = useAuth(); // Get user from context
+  const [history, setHistory] = useState<{ _id?: string, origin: string, destination: string, plan: TripPlan, date: string }[]>([]);
 
   useEffect(() => {
+    // Load local storage items for form recovery
     const savedPlan = localStorage.getItem("lastTripPlan");
     const savedInput = localStorage.getItem("lastTripInput");
-    const savedHistory = localStorage.getItem("tripHistory");
 
     if (savedPlan) {
       try {
@@ -115,39 +118,91 @@ export function TripPlanner() {
       }
     }
 
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to parse history", e);
+    // Load History
+    if (user) {
+      fetchHistoryFromAPI();
+    } else {
+      const savedHistory = localStorage.getItem("tripHistory");
+      if (savedHistory) {
+        try {
+          // Adapt local storage format to match API format roughly
+          const parsed = JSON.parse(savedHistory);
+          const adapted = parsed.map((item: any) => ({
+            origin: item.inputs.start,
+            destination: item.inputs.destination,
+            plan: item.plan,
+            date: item.date
+          }));
+          setHistory(adapted);
+        } catch (e) {
+          console.error("Failed to parse history", e);
+        }
       }
     }
-  }, [form]);
+  }, [form, user]);
+
+  const fetchHistoryFromAPI = async () => {
+    try {
+      const res = await fetch('/api/user/trips');
+      const data = await res.json();
+      if (data.success) {
+        setHistory(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch history", err);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setError(null);
     setTripPlan(null);
 
-    // Save inputs
+    // Save inputs locally for recovery
     localStorage.setItem("lastTripInput", JSON.stringify(values));
 
     const result = await planTripAction(values);
     if (result.success && result.data) {
       setTripPlan(result.data);
-      // Save result
+      // Save result locally for recovery
       localStorage.setItem("lastTripPlan", JSON.stringify(result.data));
 
       // Update History
-      const newHistoryItem = {
-        inputs: values,
-        plan: result.data,
-        date: new Date().toISOString(),
-      };
+      if (user) {
+        // Save to Backend
+        try {
+          await fetch('/api/user/trips', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              origin: values.start,
+              destination: values.destination,
+              plan: result.data
+            })
+          });
+          fetchHistoryFromAPI(); // Refresh
+        } catch (e) {
+          console.error("Failed to save trip to history", e);
+        }
+      } else {
+        // Save to LocalStorage
+        const newHistoryItem = {
+          inputs: values,
+          plan: result.data,
+          date: new Date().toISOString(),
+        };
+        const localHistory = localStorage.getItem("tripHistory") ? JSON.parse(localStorage.getItem("tripHistory")!) : [];
+        const updatedHistory = [newHistoryItem, ...localHistory].slice(0, 5);
+        localStorage.setItem("tripHistory", JSON.stringify(updatedHistory));
 
-      const updatedHistory = [newHistoryItem, ...history].slice(0, 5); // Keep last 5
-      setHistory(updatedHistory);
-      localStorage.setItem("tripHistory", JSON.stringify(updatedHistory));
+        // Update state to match view
+        setHistory(updatedHistory.map((item: any) => ({
+          origin: item.inputs.start,
+          destination: item.inputs.destination,
+          plan: item.plan,
+          date: item.date
+        })));
+      }
 
     } else {
       setError(result.error || "An unknown error occurred.");
@@ -156,15 +211,23 @@ export function TripPlanner() {
   }
 
   const loadFromHistory = (item: typeof history[0]) => {
-    form.reset(item.inputs);
+    form.setValue("start", item.origin);
+    form.setValue("destination", item.destination);
     setTripPlan(item.plan);
-    localStorage.setItem("lastTripInput", JSON.stringify(item.inputs));
+    localStorage.setItem("lastTripInput", JSON.stringify({ start: item.origin, destination: item.destination }));
     localStorage.setItem("lastTripPlan", JSON.stringify(item.plan));
   };
 
-  const clearHistory = () => {
-    setHistory([]);
-    localStorage.removeItem("tripHistory");
+  const clearHistory = async () => {
+    // In a real app, API probably needs a DELETE endpoint.
+    // For now, we just clear the view or local storage.
+    if (!user) {
+      setHistory([]);
+      localStorage.removeItem("tripHistory");
+    } else {
+      // Optional: Implement clear history API
+      setHistory([]);
+    }
   }
 
   // ... (speech recognition handlers)
@@ -327,7 +390,7 @@ export function TripPlanner() {
                 {history.map((item, i) => (
                   <li key={i} className="flex flex-col p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border" onClick={() => loadFromHistory(item)}>
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-sm truncate w-full">{item.inputs.start} → {item.inputs.destination}</span>
+                      <span className="font-semibold text-sm truncate w-full">{item.origin} → {item.destination}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
                       <span>{new Date(item.date).toLocaleDateString()}</span>

@@ -41,7 +41,7 @@ const signupSchema = z.object({
 
 export function AuthForm() {
     const [isLoading, setIsLoading] = useState(false);
-    const { signInWithGoogle, signInWithEmail } = useAuth(); // Destructure mock methods
+    const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth(); // Destructure
     const { toast } = useToast();
     const router = useRouter();
 
@@ -66,18 +66,17 @@ export function AuthForm() {
     async function onLogin(values: z.infer<typeof loginSchema>) {
         setIsLoading(true);
         try {
-            // MOCK LOGIN
-            await signInWithEmail("Returning User", values.email);
+            await signInWithEmail(values.email, values.password);
             toast({
                 title: "Welcome back!",
-                description: "Signed in successfully (Demo Mode).",
+                description: "Signed in successfully.",
             });
             router.push("/");
         } catch (error: any) {
             toast({
                 variant: "destructive",
                 title: "Login Failed",
-                description: "Could not log in.",
+                description: error.message || "Could not log in.",
             });
         } finally {
             setIsLoading(false);
@@ -87,18 +86,17 @@ export function AuthForm() {
     async function onSignup(values: z.infer<typeof signupSchema>) {
         setIsLoading(true);
         try {
-            // MOCK SIGNUP
-            await signInWithEmail(values.name, values.email);
+            await signUpWithEmail(values.name, values.email, values.password);
             toast({
                 title: "Account created!",
-                description: "Welcome to SmartBus Connect (Demo Mode).",
+                description: "Welcome to SmartBus Connect.",
             });
             router.push("/");
         } catch (error: any) {
             toast({
                 variant: "destructive",
                 title: "Sign Up Failed",
-                description: "Something went wrong.",
+                description: error.message || "Something went wrong.",
             });
         } finally {
             setIsLoading(false);
