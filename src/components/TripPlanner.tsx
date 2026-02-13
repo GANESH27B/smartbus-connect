@@ -27,7 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ArrowRight, Bot, Bus, Clock, Loader2, MapPin, PersonStanding, TramFront, ExternalLink, Mic, MicOff, Code, ChevronDown } from "lucide-react";
+import { ArrowRight, Bot, Bus, Clock, Loader2, MapPin, PersonStanding, TramFront, ExternalLink, Mic, MicOff, Code, ChevronDown, Navigation2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@react-google-maps/api";
@@ -243,6 +243,30 @@ export function TripPlanner() {
     }
   };
 
+  const useCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          form.setValue("start", `${latitude}, ${longitude}`);
+
+          if (window.google && isLoaded) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+              if (status === "OK" && results?.[0]) {
+                form.setValue("start", results[0].formatted_address);
+              }
+            });
+          }
+        },
+        (error) => {
+          console.error("Location error:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  };
+
 
   const StepIcon = ({ instruction }: { instruction: string }) => {
     const lowerInstruction = instruction.toLowerCase();
@@ -274,9 +298,21 @@ export function TripPlanner() {
                   name="start"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        Starting Point
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                      <FormLabel className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          Starting Point
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={useCurrentLocation}
+                          className="h-7 px-2 text-[10px] font-black uppercase tracking-tighter text-primary hover:bg-primary/10 rounded-lg flex items-center gap-1"
+                        >
+                          <Navigation2 className="h-3 w-3" />
+                          Use My Location
+                        </Button>
                       </FormLabel>
                       <FormControl>
                         {isLoaded ? (

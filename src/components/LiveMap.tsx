@@ -30,43 +30,54 @@ const defaultCenter = {
   lng: -118.2437,
 };
 
-const mapOptions = {
+const mapOptions = (isSatellite: boolean = false): google.maps.MapOptions => ({
   disableDefaultUI: true,
   zoomControl: true,
-  styles: [
+  mapTypeId: isSatellite ? 'hybrid' : 'roadmap',
+  tilt: 45,
+  heading: 0,
+  styles: isSatellite ? [] : [
     {
       "featureType": "poi",
-      "stylers": [{ "visibility": "off" }]
+      "stylers": [{ "visibility": "simplified" }]
     },
     {
       "featureType": "transit",
-      "stylers": [{ "visibility": "off" }]
+      "stylers": [{ "visibility": "on" }]
     },
     {
-      "featureType": "all",
-      "elementType": "labels.text.fill",
-      "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
-    },
-    {
-      "featureType": "water",
-      "elementType": "geometry",
-      "stylers": [{ "color": "#cadeed" }]
-    },
-    {
-      "featureType": "landscape",
-      "elementType": "geometry",
-      "stylers": [{ "color": "#f5f8fa" }]
+      "featureType": "transit.station.bus",
+      "stylers": [{ "visibility": "on" }, { "color": "#f43f5e" }]
     }
   ]
-};
+});
 
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
+import { Navigation2 } from 'lucide-react';
 
-function LiveMap({ buses, stops = [], center, zoom, userLocation }: LiveMapProps) {
+interface LiveMapProps {
+  buses: Bus[];
+  stops?: Stop[];
+  center?: google.maps.LatLngLiteral | null;
+  zoom?: number;
+  userLocation?: google.maps.LatLngLiteral | null;
+  isSatellite?: boolean;
+}
+
+function LiveMap({ buses, stops = [], center, zoom, userLocation, isSatellite = false }: LiveMapProps) {
   const { isLoaded } = useGoogleMaps();
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [activeMarker, setActiveMarker] = useState<Bus | Stop | null>(null);
+  const [pulseSize, setPulseSize] = useState(1);
+
+  // Animation for location pulse
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPulseSize(s => (s >= 2 ? 1 : s + 0.1));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (map && center) {
@@ -98,21 +109,21 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation }: LiveMapProps
     <div className="relative h-full w-full">
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={center || defaultCenter}
-        zoom={zoom || 12}
-        options={mapOptions}
+        center={center || userLocation || defaultCenter}
+        zoom={zoom || 14}
+        options={mapOptions(isSatellite)}
         onLoad={onLoad}
         onUnmount={onUnmount}
       >
-        {/* Bus Markers - Using a more vibrant and distinct icon */}
+        {/* Bus Markers */}
         {buses.map(bus => (
           <Marker
             key={bus.id}
             position={{ lat: bus.lat, lng: bus.lng }}
             onClick={() => handleMarkerClick(bus)}
             icon={{
-              path: "M20 12l-8 8-12-12 12-12z", // Bus-like arrow
-              scale: 0.8,
+              path: "M20 12l-8 8-12-12 12-12z",
+              scale: isSatellite ? 1.2 : 0.8,
               fillColor: bus.status === 'delayed' ? '#f43f5e' : '#8b5cf6',
               fillOpacity: 1,
               strokeWeight: 2,
@@ -124,7 +135,7 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation }: LiveMapProps
           />
         ))}
 
-        {/* Stop Markers - Vibrant Rose markers */}
+        {/* Stop Markers */}
         {stops && stops.length > 0 && stops.map(stop => (
           <Marker
             key={stop.id}
@@ -136,7 +147,7 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation }: LiveMapProps
               fillOpacity: 1,
               strokeColor: '#FFFFFF',
               strokeWeight: 2,
-              scale: 1.8,
+              scale: isSatellite ? 2.5 : 1.8,
               anchor: { x: 12, y: 24 } as any,
             }}
             zIndex={10}
@@ -145,30 +156,30 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation }: LiveMapProps
 
         {userLocation && (
           <>
+            {/* Real-time Pulsing Aura */}
+            <Circle
+              center={userLocation}
+              radius={30 * pulseSize}
+              options={{
+                fillColor: '#3b82f6',
+                fillOpacity: 0.2,
+                strokeColor: '#3b82f6',
+                strokeOpacity: 0.8,
+                strokeWeight: 1,
+                clickable: false,
+              }}
+            />
             <Marker
               position={userLocation}
               title="Your Location"
-              zIndex={50}
+              zIndex={150}
               icon={{
                 path: 0, // SymbolPath.CIRCLE
-                scale: 10,
+                scale: 14,
                 fillColor: '#3b82f6',
-                fillOpacity: 0.9,
+                fillOpacity: 1,
                 strokeColor: '#FFFFFF',
-                strokeWeight: 3,
-              }}
-            />
-            {/* Range Indicator */}
-            <Circle
-              center={userLocation}
-              radius={5000}
-              options={{
-                fillColor: '#8b5cf6',
-                fillOpacity: 0.05,
-                strokeColor: '#8b5cf6',
-                strokeOpacity: 0.5,
-                strokeWeight: 2,
-                clickable: false,
+                strokeWeight: 4,
               }}
             />
           </>

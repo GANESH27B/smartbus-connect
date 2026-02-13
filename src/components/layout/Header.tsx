@@ -67,7 +67,7 @@ export default function Header() {
         className={cn(
           "sticky top-1.5 z-50 w-full transition-all duration-500",
           isScrolled
-            ? "bg-deep/90 backdrop-blur-lg border-b border-white/10 py-2 shadow-2xl"
+            ? "bg-white/80 backdrop-blur-lg border-b border-black/5 py-2 shadow-xl"
             : "bg-transparent py-4"
         )}
       >
@@ -78,7 +78,7 @@ export default function Header() {
                 <BusFront className="h-6 w-6 text-white" />
               </div>
               <span className="font-headline font-bold text-xl tracking-tight flex items-center gap-1">
-                <span className={cn(isScrolled ? "text-white" : "text-foreground")}>SmartBus</span>
+                <span className="text-black">SmartBus</span>
                 <span className="text-gradient-vibrant">Connect</span>
               </span>
             </Link>
@@ -92,7 +92,7 @@ export default function Header() {
                     "relative px-4 py-2 text-sm font-bold transition-all rounded-xl",
                     pathname === link.href
                       ? "text-primary"
-                      : (isScrolled ? "text-white/70 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")
+                      : "text-black/70 hover:text-black hover:bg-black/5"
                   )}
                 >
                   {pathname === link.href && (
@@ -110,7 +110,7 @@ export default function Header() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="rounded-xl gap-1 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                  <Button variant="ghost" className="rounded-xl gap-1 text-sm font-bold text-black/70 hover:text-black hover:bg-black/5">
                     Schedules <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -192,7 +192,7 @@ export default function Header() {
                   size="icon"
                   className="md:hidden rounded-xl border-border/50 bg-background/50 h-10 w-10 shadow-sm"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5 text-black" />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
               </SheetTrigger>

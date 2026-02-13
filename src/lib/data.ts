@@ -38,6 +38,16 @@ export const fallbackRoutes: Route[] = [
       { id: 'stop-3-4', name: 'South Park', lat: 34.085, lng: -118.19, cityType: 3 },
     ],
   },
+  {
+    id: 'route-4',
+    name: 'Kalasalingam University Express',
+    number: 'KLU-01',
+    stops: [
+      { id: 'stop-k1', name: 'Krishnankoil Junction', lat: 9.5815, lng: 77.6750, cityType: 2 },
+      { id: 'stop-k2', name: 'KLU Main Gate', lat: 9.5788, lng: 77.6766, cityType: 1 },
+      { id: 'stop-k3', name: 'Srivilliputhur Bus Stand', lat: 9.5094, lng: 77.6322, cityType: 1 },
+    ],
+  },
 ];
 
 export const fallbackBuses: Bus[] = [
