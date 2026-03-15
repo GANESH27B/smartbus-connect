@@ -4,8 +4,12 @@ export type Stop = {
   lat: number;
   lng: number;
   eta?: string;
-  cityType?: 1 | 2 | 3;
-  distance?: number; // Distance in kilometers from user location
+  cityType?: 1 | 2 | 3 | number;
+  distance?: number;
+  isSystem?: boolean;
+  isGoogle?: boolean;
+  rating?: number;
+  vicinity?: string;
 };
 
 export type Route = {

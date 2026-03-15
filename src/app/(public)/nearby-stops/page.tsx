@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import LiveMap from '@/components/LiveMap';
-import { routes, buses } from '@/lib/data';
 import { Stop } from '@/lib/types';
 import { Loader2, MapPin, Compass, Navigation2, Info, ChevronRight, BusIcon, Search, Map as MapIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,13 +12,46 @@ import { useGoogleMaps } from '@/context/GoogleMapsContext';
 
 export default function NearbyStopsPage() {
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [allSystemStops, setAllSystemStops] = useState<Stop[]>([]);
   const [displayedStops, setDisplayedStops] = useState<Stop[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Initializing GPS...");
   const [activeStop, setActiveStop] = useState<Stop | null>(null);
   const [isSatellite, setIsSatellite] = useState(false);
+  const [activeBuses, setActiveBuses] = useState<any[]>([]);
+  const [showAllInSidebar, setShowAllInSidebar] = useState(false);
+  const [allRoutes, setAllRoutes] = useState<any[]>([]);
   const { isLoaded } = useGoogleMaps();
+
+  const fetchRealBuses = useCallback(async () => {
+    try {
+      const response = await fetch('/api/buses');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setActiveBuses(result.data.map((bus: any) => ({
+          id: bus._id?.toString() || bus.id,
+          number: bus.number,
+          routeId: bus.routeId || '',
+          lat: bus.lat,
+          lng: bus.lng,
+          status: bus.status || 'active',
+          driver: bus.driver || 'Unknown',
+          lastUpdated: bus.lastUpdated || new Date().toISOString()
+        })));
+      }
+    } catch (e) {
+      console.error("Failed to fetch real buses:", e);
+      // No longer falling back to fake 'buses' data
+      setActiveBuses([]); 
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRealBuses();
+    const interval = setInterval(fetchRealBuses, 10000); // Update buses every 10 seconds
+    return () => clearInterval(interval);
+  }, [fetchRealBuses]);
 
   // Helper to calculate distance in km
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -37,43 +69,100 @@ export default function NearbyStopsPage() {
     return deg * (Math.PI / 180);
   }
 
-  const fetchRealNearbyStops = useCallback((location: google.maps.LatLngLiteral) => {
-    if (!isLoaded || !window.google) return;
+  const fetchRealNearbyStops = useCallback(async (location: google.maps.LatLngLiteral) => {
+    if (!isLoaded) return;
 
     setSearching(true);
-    const service = new google.maps.places.PlacesService(document.createElement('div'));
+    setStatusMessage("Fetching real-time data...");
 
-    const request: google.maps.places.PlaceSearchRequest = {
-      location: new google.maps.LatLng(location.lat, location.lng),
-      radius: 3000, // 3km radius
-      type: 'bus_station'
-    };
-
-    service.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const realStops: Stop[] = results.map(place => ({
-          id: place.place_id || Math.random().toString(),
-          name: place.name || 'Unnamed Stop',
-          lat: place.geometry?.location?.lat() || 0,
-          lng: place.geometry?.location?.lng() || 0,
-          cityType: 1
+    try {
+      // 1. Fetch System Stops (Our DB)
+      const systemResponse = await fetch('/api/stops');
+      const systemResult = await systemResponse.json();
+      
+      let realSystemStops: Stop[] = [];
+      if (systemResult.success && systemResult.data) {
+        realSystemStops = systemResult.data.map((stop: any) => ({
+          id: stop._id?.toString() || stop.id,
+          name: stop.name,
+          lat: stop.lat,
+          lng: stop.lng,
+          cityType: stop.cityType || 1,
+          isSystem: true
         }));
-
-        // Sort by distance
-        realStops.sort((a, b) =>
-          calculateDistance(location.lat, location.lng, a.lat, a.lng) -
-          calculateDistance(location.lat, location.lng, b.lat, b.lng)
-        );
-
-        setDisplayedStops(realStops);
-        setStatusMessage(`Found ${realStops.length} Real-World Stops`);
-      } else {
-        setDisplayedStops([]);
-        setStatusMessage("No Real-World Stops Found Nearby");
       }
+
+      // 2. Fetch Google Verified Stops
+      const mapDiv = document.createElement('div');
+      const service = new google.maps.places.PlacesService(mapDiv);
+      
+      const googleStopsPromise = new Promise<Stop[]>((resolve) => {
+        service.nearbySearch(
+          {
+            location,
+            radius: 5000,
+            type: 'bus_station'
+          },
+          (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              const stops = results
+                .filter(p => (p.types?.includes('bus_station') || p.types?.includes('transit_station')) && !p.name?.toLowerCase().includes('mountains'))
+                .map(p => ({
+                  id: p.place_id!,
+                  name: p.name!,
+                  lat: p.geometry!.location!.lat(),
+                  lng: p.geometry!.location!.lng(),
+                  cityType: p.rating ? (p.rating > 4 ? 1 : 2) : 3,
+                  isSystem: false,
+                  rating: p.rating,
+                  vicinity: p.vicinity
+                }));
+              resolve(stops);
+            } else {
+              resolve([]);
+            }
+          }
+        );
+      });
+
+      const verifiedGoogleStops = await googleStopsPromise;
+      
+      // Merge and remove duplicates
+      const allStops = [...realSystemStops];
+      verifiedGoogleStops.forEach(gs => {
+        const isDuplicate = allStops.some(s => 
+          calculateDistance(s.lat, s.lng, gs.lat, gs.lng) < 0.1 // Within 100m
+        );
+        if (!isDuplicate) allStops.push(gs);
+      });
+
+      setAllSystemStops(allStops);
+
+      // Fetch routes too for the map labels
+      const routesRes = await fetch('/api/routes');
+      const routesData = await routesRes.json();
+      if (routesData.success) {
+        setAllRoutes(routesData.data);
+      }
+
+      // Filter and Sort for Sidebar
+      const nearbySorted = [...allStops].sort((a, b) =>
+        calculateDistance(location.lat, location.lng, a.lat, a.lng) -
+        calculateDistance(location.lat, location.lng, b.lat, b.lng)
+      ).filter(stop => 
+        calculateDistance(location.lat, location.lng, stop.lat, stop.lng) <= 25
+      );
+
+      setDisplayedStops(nearbySorted);
+      setStatusMessage(nearbySorted.length > 0 ? `Found ${nearbySorted.length} Real-Time Stops` : "No Stops Found Nearby");
+
+    } catch (error) {
+      console.error("Failed to fetch stops:", error);
+      setStatusMessage("Connection error. Using offline data.");
+    } finally {
       setSearching(false);
       setLoading(false);
-    });
+    }
   }, [isLoaded]);
 
   useEffect(() => {
@@ -143,14 +232,27 @@ export default function NearbyStopsPage() {
         <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-black font-headline text-white italic tracking-tight">Nearby Stops</h1>
-            {searching && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowAllInSidebar(!showAllInSidebar)}
+                variant="ghost" 
+                size="sm"
+                className={cn(
+                  "text-[10px] font-black uppercase tracking-widest px-3 rounded-full border border-white/10",
+                  showAllInSidebar ? "bg-primary text-white border-primary" : "text-white/40"
+                )}
+              >
+                {showAllInSidebar ? "All Stops" : "Nearby Only"}
+              </Button>
+              {searching && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
+            </div>
           </div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">{statusMessage}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-6 custom-scrollbar">
           <div className="space-y-3">
-            {displayedStops.map((stop) => {
+            {(showAllInSidebar ? allSystemStops : displayedStops).map((stop) => {
               const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, stop.lat, stop.lng) : null;
               const isActive = activeStop?.id === stop.id;
 
@@ -169,18 +271,33 @@ export default function NearbyStopsPage() {
                   <div className="flex items-start gap-4 relative z-10">
                     <div className={cn(
                       "p-3 rounded-2xl transition-colors",
-                      isActive ? "bg-white/20" : "bg-primary/10 group-hover:bg-primary/20"
+                      isActive ? "bg-white/20" : (stop.isSystem ? "bg-rose-500/10" : "bg-sky-500/10")
                     )}>
-                      <BusIcon className={cn("h-5 w-5", isActive ? "text-white" : "text-primary")} />
+                      <BusIcon className={cn("h-5 w-5", isActive ? "text-white" : (stop.isSystem ? "text-rose-500" : "text-sky-500"))} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className={cn("font-bold truncate", isActive ? "text-white" : "text-white/90")}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn(
+                          "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
+                          isActive 
+                            ? "bg-white/20 text-white" 
+                            : (stop.isSystem ? "bg-rose-500 text-white" : "bg-sky-500 text-white")
+                        )}>
+                          {stop.isSystem ? 'System' : 'Public'}
+                        </span>
+                        {stop.rating && (
+                          <span className={cn("text-[9px] font-bold flex items-center gap-0.5", isActive ? "text-white" : "text-amber-500")}>
+                            ★ {stop.rating}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className={cn("font-bold truncate text-sm", isActive ? "text-white" : "text-white/90")}>
                         {stop.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
                         <MapPin className={cn("h-3 w-3", isActive ? "text-white/60" : "text-white/30")} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", isActive ? "text-white/60" : "text-white/30")}>
-                          {distance ? `${distance.toFixed(2)} km away` : 'Distance unknown'}
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest leading-none", isActive ? "text-white/60" : "text-white/30")}>
+                          {distance !== null ? `${distance.toFixed(2)} km away` : 'Locating...'}
                         </span>
                       </div>
                     </div>
@@ -259,6 +376,7 @@ export default function NearbyStopsPage() {
             onClick={() => {
               if (userLocation) {
                 fetchRealNearbyStops(userLocation);
+                fetchRealBuses();
               }
             }}
             disabled={searching}
@@ -282,11 +400,12 @@ export default function NearbyStopsPage() {
         </div>
 
         <LiveMap
-          buses={buses}
-          stops={displayedStops}
+          buses={activeBuses}
+          stops={showAllInSidebar ? allSystemStops : (displayedStops.length > 0 ? displayedStops : allSystemStops)}
+          allRoutes={allRoutes}
           userLocation={userLocation}
           center={activeStop ? { lat: activeStop.lat, lng: activeStop.lng } : userLocation}
-          zoom={activeStop ? 16 : 14}
+          zoom={activeStop ? 16 : (userLocation ? 14 : 10)}
           isSatellite={isSatellite}
         />
       </div>

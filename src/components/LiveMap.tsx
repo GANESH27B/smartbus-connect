@@ -15,9 +15,11 @@ import { routes } from '@/lib/data';
 interface LiveMapProps {
   buses: Bus[];
   stops?: Stop[];
+  allRoutes?: any[]; // For route number lookups
   center?: google.maps.LatLngLiteral | null;
   zoom?: number;
   userLocation?: google.maps.LatLngLiteral | null;
+  isSatellite?: boolean;
 }
 
 const containerStyle = {
@@ -30,46 +32,51 @@ const defaultCenter = {
   lng: -118.2437,
 };
 
+const premiumMapStyles = [
+  { "elementType": "geometry", "stylers": [{ "color": "#1a1c24" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#1a1c24" }] },
+  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#2a2d3a" }] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca3af" }] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#374151" }] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2937" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#334155" }] }
+];
+
 const mapOptions = (isSatellite: boolean = false): google.maps.MapOptions => ({
   disableDefaultUI: true,
-  zoomControl: true,
+  zoomControl: false, 
+  mapTypeControl: false,
+  streetViewControl: false,
+  fullscreenControl: false,
   mapTypeId: isSatellite ? 'hybrid' : 'roadmap',
-  tilt: 45,
-  heading: 0,
-  styles: isSatellite ? [] : [
-    {
-      "featureType": "poi",
-      "stylers": [{ "visibility": "simplified" }]
-    },
-    {
-      "featureType": "transit",
-      "stylers": [{ "visibility": "on" }]
-    },
-    {
-      "featureType": "transit.station.bus",
-      "stylers": [{ "visibility": "on" }, { "color": "#f43f5e" }]
-    }
-  ]
+  styles: isSatellite ? [] : premiumMapStyles,
+  backgroundColor: '#1a1c24',
+  gestureHandling: 'greedy'
 });
 
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
-import { Navigation2 } from 'lucide-react';
+import { Navigation2, Bus as BusIcon, MapPin, Wind } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-interface LiveMapProps {
-  buses: Bus[];
-  stops?: Stop[];
-  center?: google.maps.LatLngLiteral | null;
-  zoom?: number;
-  userLocation?: google.maps.LatLngLiteral | null;
-  isSatellite?: boolean;
-}
-
-function LiveMap({ buses, stops = [], center, zoom, userLocation, isSatellite = false }: LiveMapProps) {
+function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation, isSatellite = false }: LiveMapProps) {
   const { isLoaded } = useGoogleMaps();
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [activeMarker, setActiveMarker] = useState<Bus | Stop | null>(null);
   const [pulseSize, setPulseSize] = useState(1);
+
+  // Animation for location pulse
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPulseSize(s => (s >= 2 ? 1 : s + 0.1));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   // Animation for location pulse
   useEffect(() => {
@@ -115,27 +122,28 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation, isSatellite = 
         onLoad={onLoad}
         onUnmount={onUnmount}
       >
-        {/* Bus Markers */}
+        {/* Professional Bus Markers (Direction Aware) */}
         {buses.map(bus => (
           <Marker
             key={bus.id}
             position={{ lat: bus.lat, lng: bus.lng }}
             onClick={() => handleMarkerClick(bus)}
             icon={{
-              path: "M20 12l-8 8-12-12 12-12z",
-              scale: isSatellite ? 1.2 : 0.8,
+              path: "M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z", // Modern Arrow Path
+              scale: isSatellite ? 1.4 : 1.1,
               fillColor: bus.status === 'delayed' ? '#f43f5e' : '#8b5cf6',
               fillOpacity: 1,
               strokeWeight: 2,
               strokeColor: '#FFFFFF',
-              rotation: 0,
+              rotation: 0, // In a real app we'd calculate this from movement
               anchor: { x: 12, y: 12 } as any,
             }}
             zIndex={100}
+            title={`Bus ${bus.number}`}
           />
         ))}
 
-        {/* Stop Markers */}
+        {/* Premium Stop Pins */}
         {stops && stops.length > 0 && stops.map(stop => (
           <Marker
             key={stop.id}
@@ -143,14 +151,15 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation, isSatellite = 
             onClick={() => handleMarkerClick(stop)}
             icon={{
               path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-              fillColor: '#f43f5e',
+              fillColor: stop.cityType === 2 ? '#f59e0b' : stop.cityType === 3 ? '#10b981' : '#f43f5e',
               fillOpacity: 1,
               strokeColor: '#FFFFFF',
               strokeWeight: 2,
-              scale: isSatellite ? 2.5 : 1.8,
-              anchor: { x: 12, y: 24 } as any,
+              scale: isSatellite ? 2.5 : 2.0,
+              anchor: { x: 12, y: 22 } as any,
             }}
             zIndex={10}
+            title={stop.name}
           />
         ))}
 
@@ -190,36 +199,87 @@ function LiveMap({ buses, stops = [], center, zoom, userLocation, isSatellite = 
             position={{ lat: activeMarker.lat, lng: activeMarker.lng }}
             onCloseClick={() => setActiveMarker(null)}
           >
-            <div className="p-4 min-w-[200px] font-sans">
+            <div className="p-0 min-w-[240px] overflow-hidden rounded-2xl bg-white text-slate-900 border-none shadow-2xl">
               {'number' in activeMarker ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Bus</span>
-                    <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                      activeMarker.status === 'delayed' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'
+                <div className="flex flex-col">
+                  {/* Bus Header */}
+                  <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Fleet Vehicle</p>
+                      <h3 className="text-2xl font-black tracking-tighter italic">#{activeMarker.number}</h3>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                      activeMarker.status === 'delayed' ? "bg-rose-500/20 text-rose-500" : "bg-emerald-500/20 text-emerald-500"
                     )}>
+                      <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", activeMarker.status === 'delayed' ? "bg-rose-500" : "bg-emerald-500")} />
                       {activeMarker.status}
-                    </span>
+                    </div>
                   </div>
-                  <h3 className="font-headline font-black text-xl italic text-primary">#{activeMarker.number}</h3>
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground">Route</p>
-                      <p className="font-bold text-sm">{routes.find(r => r.id === activeMarker.routeId)?.number}</p>
+                  {/* Bus Body */}
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-100 p-3 rounded-xl text-slate-400">
+                        <Navigation2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Current Route</p>
+                        <p className="font-bold text-slate-700">Line {allRoutes.find(r => (r._id === activeMarker.routeId || r.id === activeMarker.routeId))?.number || 'Active'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground">Driver</p>
-                      <p className="font-bold text-sm truncate">{activeMarker.driver}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-100 p-3 rounded-xl text-slate-400">
+                        <Wind className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Commanding Driver</p>
+                        <p className="font-bold text-slate-700">{activeMarker.driver}</p>
+                      </div>
                     </div>
+                    <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl h-11">
+                      Track Live Journey
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">Bus Stop</span>
-                  <h3 className="font-headline font-bold text-lg leading-tight">{activeMarker.name}</h3>
-                  <button className="w-full mt-3 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:opacity-90 transition-opacity">
-                    See Next Arrivals
-                  </button>
+                <div className="flex flex-col">
+                  <div className={cn("p-4 text-white", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-500" : "bg-sky-500")}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">
+                      {('isSystem' in activeMarker && activeMarker.isSystem) ? 'Transit Access Point' : 'Google Verified Stop'}
+                    </p>
+                    <h3 className="text-xl font-black italic tracking-tight leading-tight">{activeMarker.name}</h3>
+                  </div>
+                  <div className="p-4 space-y-4 text-slate-900">
+                    {('rating' in activeMarker && activeMarker.rating) ? (
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex text-amber-400">
+                           {Array.from({ length: Math.floor(activeMarker.rating) }).map((_, i) => (
+                             <span key={i}>★</span>
+                           ))}
+                        </div>
+                        <span className="text-xs font-black text-slate-400">{activeMarker.rating}</span>
+                      </div>
+                    ) : null}
+                    
+                    <div className="flex items-center gap-4">
+                      <div className={cn("p-3 rounded-xl", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-50 text-rose-500" : "bg-sky-50 text-sky-500")}>
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                           {('vicinity' in activeMarker && activeMarker.vicinity) ? 'Area Location' : 'Stop Category'}
+                        </p>
+                        <p className="font-bold text-slate-700 truncate">
+                          {('vicinity' in activeMarker && activeMarker.vicinity) 
+                            ? activeMarker.vicinity 
+                            : (activeMarker.cityType === 1 ? 'Primary Terminal' : activeMarker.cityType === 2 ? 'Major Junction' : 'Suburban Hub')}
+                        </p>
+                      </div>
+                    </div>
+                    <Button className={cn("w-full text-white font-bold rounded-xl h-11", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-500 hover:bg-rose-600" : "bg-sky-500 hover:bg-sky-600")}>
+                      {('isSystem' in activeMarker && activeMarker.isSystem) ? 'View Next Arrival Times' : 'Open in Google Maps'}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

@@ -101,6 +101,16 @@ export const fallbackBuses: Bus[] = [
     driver: 'Sanjay Gupta',
     lastUpdated: new Date().toISOString(),
   },
+  {
+    id: 'bus-klu-1',
+    number: 'KLU-999',
+    routeId: 'route-4',
+    lat: 9.5800,
+    lng: 77.6755,
+    status: 'active',
+    driver: 'Murugan',
+    lastUpdated: new Date().toISOString(),
+  },
 ];
 
 // Export functions that try MongoDB first, then fallback to static data

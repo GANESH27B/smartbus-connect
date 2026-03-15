@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import LiveMap from '@/components/LiveMap';
-import { buses, routes } from '@/lib/data';
 import { Navigation2, Map as MapIcon, Loader2, Compass, Search, MapPin, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,10 +11,55 @@ import { cn } from '@/lib/utils';
 
 export default function SatelliteNavigationPage() {
     const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
+    const [allStops, setAllStops] = useState<any[]>([]);
+    const [activeBuses, setActiveBuses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeMode, setActiveMode] = useState<'satellite' | 'roadmap'>('satellite');
     const [isFollowing, setIsFollowing] = useState(true);
     const { isLoaded } = useGoogleMaps();
+
+    const fetchRealData = async () => {
+        try {
+            const [stopsRes, busesRes] = await Promise.all([
+                fetch('/api/stops'),
+                fetch('/api/buses')
+            ]);
+            const [stopsData, busesData] = await Promise.all([
+                stopsRes.json(),
+                busesRes.json()
+            ]);
+
+            if (stopsData.success) {
+                setAllStops(stopsData.data.map((s: any) => ({
+                    id: s._id?.toString() || s.id,
+                    name: s.name,
+                    lat: s.lat,
+                    lng: s.lng,
+                    cityType: s.cityType || 1
+                })));
+            }
+            if (busesData.success) {
+                setActiveBuses(busesData.data.map((b: any) => ({
+                    id: b._id?.toString() || b.id,
+                    number: b.number,
+                    routeId: b.routeId || '',
+                    lat: b.lat,
+                    lng: b.lng,
+                    status: b.status || 'active',
+                    driver: b.driver || 'Unknown',
+                    lastUpdated: b.lastUpdated || new Date().toISOString()
+                })));
+            }
+        } catch (e) {
+            console.error("Failed to fetch navigation data:", e);
+        }
+    };
+
+    useEffect(() => {
+        fetchRealData();
+        const interval = setInterval(fetchRealData, 10000); // Poll for bus updates
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         let watchId: number;
@@ -122,8 +166,8 @@ export default function SatelliteNavigationPage() {
             </div>
 
             <LiveMap
-                buses={buses}
-                stops={routes.flatMap(r => r.stops)}
+                buses={activeBuses}
+                stops={allStops}
                 userLocation={userLocation}
                 center={isFollowing ? userLocation : null}
                 zoom={isFollowing ? 17 : 14}

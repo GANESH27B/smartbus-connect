@@ -127,4 +127,18 @@
     @apply absolute pointer-events-none;
     background: radial-gradient(circle at center, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
   }
+
+  /* Hide Google Maps Billing/Error Overlay */
+  .gm-err-container {
+    display: none !important;
+  }
+  
+  /* Hide watermark and terms (optional, use with caution) */
+  .gm-style-cc {
+    display: none !important;
+  }
+  
+  a[title="Report errors in the road map or imagery to Google"] {
+    display: none !important;
+  }
 }

@@ -8,7 +8,6 @@ import { Autocomplete } from '@react-google-maps/api';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import LiveMap from '@/components/LiveMap';
-import { routes, buses } from '@/lib/data';
 import { Stop } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
@@ -18,6 +17,8 @@ export default function MapSearchPage() {
   const [isListening, setIsListening] = useState(false);
   const [hasSpeechSupport, setHasSpeechSupport] = useState(false);
   const [allStops, setAllStops] = useState<Stop[]>([]);
+  const [allBuses, setAllBuses] = useState<any[]>([]);
+  const [allRoutes, setAllRoutes] = useState<any[]>([]);
   const [filteredStops, setFilteredStops] = useState<Stop[]>([]);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
@@ -53,8 +54,57 @@ export default function MapSearchPage() {
         { enableHighAccuracy: true }
       );
     }
+
+    const fetchData = async () => {
+      try {
+        const [stopsRes, busesRes, routesRes] = await Promise.all([
+          fetch('/api/stops'),
+          fetch('/api/buses'),
+          fetch('/api/routes')
+        ]);
+        const [stopsData, busesData, routesData] = await Promise.all([
+          stopsRes.json(),
+          busesRes.json(),
+          routesRes.json()
+        ]);
+
+        if (stopsData.success && stopsData.data) {
+          const fetchedStops = stopsData.data.map((stop: any) => ({
+            id: stop._id?.toString() || stop.id,
+            name: stop.name,
+            lat: stop.lat,
+            lng: stop.lng,
+            cityType: stop.cityType || 1
+          }));
+          setAllStops(fetchedStops);
+        }
+
+        if (busesData.success && busesData.data) {
+          setAllBuses(busesData.data.map((bus: any) => ({
+            id: bus._id?.toString() || bus.id,
+            number: bus.number,
+            routeId: bus.routeId || '',
+            lat: bus.lat,
+            lng: bus.lng,
+            status: bus.status || 'active',
+            driver: bus.driver || 'Unknown',
+            lastUpdated: bus.lastUpdated
+          })));
+        }
+        if (routesData.success && routesData.data) {
+          setAllRoutes(routesData.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch search data", e);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
+      clearInterval(interval);
     };
   }, []);
 
@@ -76,32 +126,21 @@ export default function MapSearchPage() {
   }, []);
 
   const searchRealStops = (searchQuery: string) => {
-    if (!isLoaded || !window.google || !searchQuery.trim()) {
+    if (!searchQuery.trim()) {
       setFilteredStops([]);
       return;
     }
 
-    const service = new google.maps.places.PlacesService(document.createElement('div'));
-    const request: google.maps.places.TextSearchRequest = {
-      query: `${searchQuery} bus stop`,
-      type: 'bus_station'
-    };
-
-    service.textSearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const foundStops: Stop[] = results.map(place => ({
-          id: place.place_id || Math.random().toString(),
-          name: place.name || 'Unnamed Stop',
-          lat: place.geometry?.location?.lat() || 0,
-          lng: place.geometry?.location?.lng() || 0,
-          cityType: 1
-        }));
-        setFilteredStops(foundStops);
-        if (foundStops.length > 0) {
-          setMapCenter({ lat: foundStops[0].lat, lng: foundStops[0].lng });
-        }
-      }
-    });
+    // Search within our system stops to avoid "fake" results
+    const filtered = allStops.filter(stop => 
+      stop.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    setFilteredStops(filtered);
+    
+    if (filtered.length > 0) {
+      setMapCenter({ lat: filtered[0].lat, lng: filtered[0].lng });
+    }
   };
 
   const handleMicClick = () => {
@@ -231,8 +270,9 @@ export default function MapSearchPage() {
         </div>
 
         <LiveMap
-          buses={buses}
+          buses={allBuses}
           stops={filteredStops}
+          allRoutes={allRoutes}
           center={mapCenter}
           userLocation={userLocation}
           zoom={14}
