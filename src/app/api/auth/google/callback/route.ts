@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
 
         const clientId = process.env.GOOGLE_CLIENT_ID;
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-        const redirectUri = process.env.GOOGLE_REDIRECT_URI;
         const jwtSecret = process.env.JWT_SECRET;
 
-        if (!clientId || !clientSecret || !redirectUri || !jwtSecret) {
+        const origin = new URL(request.url).origin;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
+        const redirectUri = `${baseUrl}/api/auth/google/callback`;
+
+        if (!clientId || !clientSecret || !jwtSecret) {
             return NextResponse.json({ success: false, error: 'Server configuration missing' }, { status: 500 });
         }
 
