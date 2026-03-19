@@ -10,17 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 const features = [
-  {
-    icon: <MapPin className="w-10 h-10" />,
-    title: "Nearby Stops",
-    description: "Instantly discover bus stops around you with precise real-time walking distances.",
-    link: "/nearby-stops",
-    cta: "Find Stops",
-    gradient: "from-rose-500/20 to-orange-500/20",
-    glow: "group-hover:shadow-rose-500/30",
-    iconColor: "text-rose-500",
-    badge: "Fastest",
-  },
+
   {
     icon: <Bot className="w-10 h-10" />,
     title: "AI Trip Planner",
@@ -89,9 +79,9 @@ export default function HomePage() {
               We've brought color and intelligence to urban transit. Track every bus, plan every trip, and enjoy every mile.
             </p>
             <div className="flex flex-col sm:flex-row gap-5">
-              <Button asChild size="xl" className="rounded-2xl text-lg px-10 shadow-2xl shadow-primary/40 bg-vibrant-gradient hover:scale-105 transition-transform border-none">
-                <Link href="/nearby-stops">
-                  Find Stops <ArrowRight className="ml-2 w-5 h-5" />
+              <Button asChild size="lg" className="rounded-2xl text-lg px-10 h-16 shadow-2xl shadow-primary/40 bg-vibrant-gradient hover:scale-105 transition-transform border-none">
+                <Link href="/trip-planner">
+                  Plan Your Trip <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
             </div>
@@ -223,10 +213,10 @@ export default function HomePage() {
                   Ready to embrace the most colorful and efficient transit experience ever created? Your bus is waiting.
                 </p>
                 <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-4">
-                  <Button asChild size="xl" variant="secondary" className="rounded-2xl px-12 h-16 shadow-2xl text-lg font-black bg-white text-violet-600 hover:scale-105 transition-transform hover:bg-white hover:shadow-white/20 border-none">
+                  <Button asChild size="lg" variant="secondary" className="rounded-2xl px-12 h-16 shadow-2xl text-lg font-black bg-white text-violet-600 hover:scale-105 transition-transform hover:bg-white hover:shadow-white/20 border-none">
                     <Link href="/login">Join Now — It's Free</Link>
                   </Button>
-                  <Button asChild size="xl" variant="ghost" className="rounded-2xl px-12 h-16 glass text-white hover:bg-white/20 border-white/30 text-lg font-black">
+                  <Button asChild size="lg" variant="ghost" className="rounded-2xl px-12 h-16 glass text-white hover:bg-white/20 border-white/30 text-lg font-black">
                     <Link href="/about">Our Vision</Link>
                   </Button>
                 </div>

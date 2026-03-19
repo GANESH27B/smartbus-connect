@@ -271,12 +271,13 @@ export default function MapSearchPage() {
 
         <LiveMap
           buses={allBuses}
-          stops={filteredStops}
+          stops={query.trim() === "" ? allStops : filteredStops}
           allRoutes={allRoutes}
           center={mapCenter}
           userLocation={userLocation}
           zoom={14}
           isSatellite={isSatellite}
+          showRealTimeStops={true}
         />
 
         {/* Map Overlay info */}

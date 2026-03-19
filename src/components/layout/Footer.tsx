@@ -44,7 +44,6 @@ export default function Footer() {
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-foreground opacity-40">The Platform</h3>
             <ul className="space-y-4">
               {[
-                { label: "Nearby Stops", href: "/nearby-stops" },
                 { label: "AI Trip Planner", href: "/trip-planner" },
                 { label: "Interactive Map", href: "/map-search" }
               ].map((link) => (

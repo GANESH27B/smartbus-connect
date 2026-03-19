@@ -20,6 +20,8 @@ interface LiveMapProps {
   zoom?: number;
   userLocation?: google.maps.LatLngLiteral | null;
   isSatellite?: boolean;
+  onMapReady?: (map: google.maps.Map) => void;
+  showRealTimeStops?: boolean;
 }
 
 const containerStyle = {
@@ -34,10 +36,12 @@ const defaultCenter = {
 
 const premiumMapStyles = [
   { "elementType": "geometry", "stylers": [{ "color": "#1a1c24" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
   { "elementType": "labels.text.stroke", "stylers": [{ "color": "#1a1c24" }] },
   { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "visibility": "off" }] },
-  { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#20232d" }] },
+  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+  { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
   { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#2a2d3a" }] },
   { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
   { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca3af" }] },
@@ -49,7 +53,7 @@ const premiumMapStyles = [
 
 const mapOptions = (isSatellite: boolean = false): google.maps.MapOptions => ({
   disableDefaultUI: true,
-  zoomControl: false, 
+  zoomControl: false,
   mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: false,
@@ -63,7 +67,17 @@ import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import { Navigation2, Bus as BusIcon, MapPin, Wind } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation, isSatellite = false }: LiveMapProps) {
+function LiveMap({ 
+  buses, 
+  stops = [], 
+  allRoutes = [], 
+  center, 
+  zoom, 
+  userLocation, 
+  isSatellite = false, 
+  onMapReady,
+  showRealTimeStops = false 
+}: LiveMapProps) {
   const { isLoaded } = useGoogleMaps();
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -104,7 +118,8 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
 
   const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
     setMap(mapInstance);
-  }, []);
+    if (onMapReady) onMapReady(mapInstance);
+  }, [onMapReady]);
 
   const onUnmount = useCallback(function callback(map: google.maps.Map) {
     setMap(null);
@@ -123,7 +138,7 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
         onUnmount={onUnmount}
       >
         {/* Professional Bus Markers (Direction Aware) */}
-        {buses.map(bus => (
+        {buses.map((bus: Bus) => (
           <Marker
             key={bus.id}
             position={{ lat: bus.lat, lng: bus.lng }}
@@ -224,7 +239,7 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Current Route</p>
-                        <p className="font-bold text-slate-700">Line {allRoutes.find(r => (r._id === activeMarker.routeId || r.id === activeMarker.routeId))?.number || 'Active'}</p>
+                        <p className="font-bold text-slate-700">Line {allRoutes.find((r: any) => (r._id === activeMarker.routeId || r.id === activeMarker.routeId))?.number || 'Active'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -243,9 +258,20 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  <div className={cn("p-4 text-white", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-500" : "bg-sky-500")}>
+                  <div
+                    className={cn(
+                      "p-4 text-white",
+                      ('isSystem' in activeMarker && activeMarker.isSystem)
+                        ? "bg-rose-500"
+                        : (('source' in activeMarker && activeMarker.source === 'osm') ? "bg-emerald-600" : "bg-sky-500")
+                    )}
+                  >
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">
-                      {('isSystem' in activeMarker && activeMarker.isSystem) ? 'Transit Access Point' : 'Google Verified Stop'}
+                      {('isSystem' in activeMarker && activeMarker.isSystem)
+                        ? 'Transit Access Point'
+                        : (('isGoogle' in activeMarker && activeMarker.isGoogle)
+                          ? 'Google Verified Stop'
+                          : (('source' in activeMarker && activeMarker.source === 'osm') ? 'OpenStreetMap Stop' : 'Public Stop'))}
                     </p>
                     <h3 className="text-xl font-black italic tracking-tight leading-tight">{activeMarker.name}</h3>
                   </div>
@@ -253,30 +279,48 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
                     {('rating' in activeMarker && activeMarker.rating) ? (
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex text-amber-400">
-                           {Array.from({ length: Math.floor(activeMarker.rating) }).map((_, i) => (
-                             <span key={i}>★</span>
-                           ))}
+                          {Array.from({ length: Math.floor(activeMarker.rating) }).map((_, i) => (
+                            <span key={i}>★</span>
+                          ))}
                         </div>
                         <span className="text-xs font-black text-slate-400">{activeMarker.rating}</span>
                       </div>
                     ) : null}
-                    
+
                     <div className="flex items-center gap-4">
-                      <div className={cn("p-3 rounded-xl", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-50 text-rose-500" : "bg-sky-50 text-sky-500")}>
+                      <div
+                        className={cn(
+                          "p-3 rounded-xl",
+                          ('isSystem' in activeMarker && activeMarker.isSystem)
+                            ? "bg-rose-50 text-rose-500"
+                            : (('source' in activeMarker && activeMarker.source === 'osm')
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-sky-50 text-sky-500")
+                        )}
+                      >
                         <MapPin className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
-                           {('vicinity' in activeMarker && activeMarker.vicinity) ? 'Area Location' : 'Stop Category'}
+                          {('vicinity' in activeMarker && activeMarker.vicinity) ? 'Area Location' : 'Stop Category'}
                         </p>
                         <p className="font-bold text-slate-700 truncate">
-                          {('vicinity' in activeMarker && activeMarker.vicinity) 
-                            ? activeMarker.vicinity 
+                          {('vicinity' in activeMarker && activeMarker.vicinity)
+                            ? activeMarker.vicinity
                             : (activeMarker.cityType === 1 ? 'Primary Terminal' : activeMarker.cityType === 2 ? 'Major Junction' : 'Suburban Hub')}
                         </p>
                       </div>
                     </div>
-                    <Button className={cn("w-full text-white font-bold rounded-xl h-11", ('isSystem' in activeMarker && activeMarker.isSystem) ? "bg-rose-500 hover:bg-rose-600" : "bg-sky-500 hover:bg-sky-600")}>
+                    <Button
+                      className={cn(
+                        "w-full text-white font-bold rounded-xl h-11",
+                        ('isSystem' in activeMarker && activeMarker.isSystem)
+                          ? "bg-rose-500 hover:bg-rose-600"
+                          : (('source' in activeMarker && activeMarker.source === 'osm')
+                            ? "bg-emerald-600 hover:bg-emerald-700"
+                            : "bg-sky-500 hover:bg-sky-600")
+                      )}
+                    >
                       {('isSystem' in activeMarker && activeMarker.isSystem) ? 'View Next Arrival Times' : 'Open in Google Maps'}
                     </Button>
                   </div>
@@ -286,6 +330,25 @@ function LiveMap({ buses, stops = [], allRoutes = [], center, zoom, userLocation
           </InfoWindow>
         )}
       </GoogleMap>
+      <div className="absolute bottom-4 left-4 z-10">
+        <div className="bg-slate-900/80 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-white w-64">
+          <h3 className="text-sm font-black italic tracking-tight text-white mb-3">Stop Types</h3>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#f43f5e' }} />
+              <span className="text-xs font-bold text-white/80">Primary Terminal (Tier 1)</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#f59e0b' }} />
+              <span className="text-xs font-bold text-white/80">Major Junction (Tier 2)</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#10b981' }} />
+              <span className="text-xs font-bold text-white/80">Suburban Hub (Tier 3)</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

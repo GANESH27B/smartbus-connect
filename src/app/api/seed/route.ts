@@ -37,6 +37,15 @@ const seedData = {
         { name: 'South Park', lat: 34.085, lng: -118.19, cityType: 3 },
       ],
     },
+    {
+      name: 'Kalasalingam University Express',
+      number: 'KLU-01',
+      stops: [
+        { name: 'Krinankovil Bus Stop', lat: 9.5815, lng: 77.6750, cityType: 2 },
+        { name: 'KLU Main Gate', lat: 9.5788, lng: 77.6766, cityType: 1 },
+        { name: 'Srivilliputhur Bus Stand', lat: 9.5094, lng: 77.6322, cityType: 1 },
+      ],
+    },
   ],
   buses: [
     {
@@ -79,6 +88,14 @@ const seedData = {
       status: 'maintenance',
       driver: 'Sanjay Gupta',
     },
+    {
+      number: 'KLU-999',
+      routeId: null as any,
+      lat: 9.5800,
+      lng: 77.6755,
+      status: 'active',
+      driver: 'Murugan',
+    },
   ],
 };
 
@@ -114,12 +131,14 @@ export async function POST(request: NextRequest) {
     const buses = [];
     for (let i = 0; i < seedData.buses.length; i++) {
       const busData = seedData.buses[i];
-      const routeIndex = i < 2 ? 0 : i < 4 ? 1 : 2; // Assign routes: first 2 to route 1, next 2 to route 2, last to route 2
-      if (i === 4) {
-        busData.routeId = createdRoutes[1]._id; // Last bus to route 2
-      } else {
-        busData.routeId = createdRoutes[routeIndex]._id;
-      }
+      // Logic: 0,1 -> Route 0 | 2,3 -> Route 1 | 4 -> Route 2 | 5 -> Route 3 (KLU)
+      let routeIndex = 0;
+      if (i < 2) routeIndex = 0;
+      else if (i < 4) routeIndex = 1;
+      else if (i === 4) routeIndex = 2;
+      else routeIndex = 3;
+
+      busData.routeId = createdRoutes[routeIndex]._id;
 
       const bus = await Bus.create({
         ...busData,

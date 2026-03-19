@@ -8,6 +8,7 @@ export type Stop = {
   distance?: number;
   isSystem?: boolean;
   isGoogle?: boolean;
+  source?: 'system' | 'google' | 'osm';
   rating?: number;
   vicinity?: string;
 };

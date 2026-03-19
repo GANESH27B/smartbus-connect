@@ -172,6 +172,7 @@ export default function SatelliteNavigationPage() {
                 center={isFollowing ? userLocation : null}
                 zoom={isFollowing ? 17 : 14}
                 isSatellite={activeMode === 'satellite'}
+                showRealTimeStops={true}
             />
 
             <style jsx global>{`

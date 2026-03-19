@@ -27,7 +27,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navLinks = [
   { href: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
-  { href: "/nearby-stops", label: "Nearby", icon: <MapPin className="h-4 w-4" /> },
   { href: "/trip-planner", label: "AI Planner", icon: <Bot className="h-4 w-4" /> },
   { href: "/map-search", label: "Map", icon: <Map className="h-4 w-4" /> },
 ];
