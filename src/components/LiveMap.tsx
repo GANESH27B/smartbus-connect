@@ -64,7 +64,7 @@ const mapOptions = (isSatellite: boolean = false): google.maps.MapOptions => ({
 });
 
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
-import { Navigation2, Bus as BusIcon, MapPin, Wind } from 'lucide-react';
+import { Navigation2, Bus as BusIcon, MapPin, Wind, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function LiveMap({ 
@@ -251,6 +251,17 @@ function LiveMap({
                         <p className="font-bold text-slate-700">{activeMarker.driver}</p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-100 p-3 rounded-xl text-slate-400">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Last Uplink</p>
+                        <p className="font-bold text-slate-700">
+                          {activeMarker.lastUpdated ? new Date(activeMarker.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Signal Lost'}
+                        </p>
+                      </div>
+                    </div>
                     <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl h-11">
                       Track Live Journey
                     </Button>
@@ -330,21 +341,55 @@ function LiveMap({
           </InfoWindow>
         )}
       </GoogleMap>
+      
+      {/* Map Controls */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {userLocation && (
+          <Button 
+            size="icon" 
+            variant="secondary" 
+            className="bg-white/90 backdrop-blur shadow-lg hover:bg-white text-slate-700 rounded-xl h-12 w-12"
+            onClick={() => map?.panTo(userLocation)}
+            title="My Location"
+          >
+            <Navigation2 className="w-6 h-6" />
+          </Button>
+        )}
+        <Button 
+          size="icon" 
+          variant="secondary" 
+          className="bg-white/90 backdrop-blur shadow-lg hover:bg-white text-slate-700 rounded-xl h-12 w-12"
+          onClick={() => {
+            if (map && buses.length > 0) {
+              const bounds = new window.google.maps.LatLngBounds();
+              buses.forEach(b => bounds.extend({ lat: b.lat, lng: b.lng }));
+              map.fitBounds(bounds);
+            }
+          }}
+          title="Fit All Buses"
+        >
+          <BusIcon className="w-6 h-6" />
+        </Button>
+      </div>
+
       <div className="absolute bottom-4 left-4 z-10">
-        <div className="bg-slate-900/80 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-white w-64">
-          <h3 className="text-sm font-black italic tracking-tight text-white mb-3">Stop Types</h3>
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#f43f5e' }} />
-              <span className="text-xs font-bold text-white/80">Primary Terminal (Tier 1)</span>
+        <div className="bg-slate-900/80 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-white w-64 shadow-2xl">
+          <h3 className="text-sm font-black italic tracking-tight text-white mb-3 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            Stop Types
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center group">
+              <div className="w-3 h-3 rounded-full mr-3 shadow-[0_0_10px_rgba(244,63,94,0.6)] group-hover:scale-125 transition-transform" style={{ backgroundColor: '#f43f5e' }} />
+              <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">Primary Terminal (Tier 1)</span>
             </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#f59e0b' }} />
-              <span className="text-xs font-bold text-white/80">Major Junction (Tier 2)</span>
+            <div className="flex items-center group">
+              <div className="w-3 h-3 rounded-full mr-3 shadow-[0_0_10px_rgba(245,158,11,0.6)] group-hover:scale-125 transition-transform" style={{ backgroundColor: '#f59e0b' }} />
+              <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">Major Junction (Tier 2)</span>
             </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: '#10b981' }} />
-              <span className="text-xs font-bold text-white/80">Suburban Hub (Tier 3)</span>
+            <div className="flex items-center group">
+              <div className="w-3 h-3 rounded-full mr-3 shadow-[0_0_10px_rgba(16,185,129,0.6)] group-hover:scale-125 transition-transform" style={{ backgroundColor: '#10b981' }} />
+              <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">Suburban Hub (Tier 3)</span>
             </div>
           </div>
         </div>

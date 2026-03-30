@@ -3,14 +3,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Route, Bot, MapPin, Shield, Zap, Globe, Users, Clock, Navigation, Star, Sparkles, Heart } from "lucide-react";
+import { ArrowRight, Route, Bot, MapPin, Shield, Zap, Globe, Users, Clock, Navigation, Star, Sparkles, Heart, Bell, Eye, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 const features = [
-
   {
     icon: <Bot className="w-10 h-10" />,
     title: "AI Trip Planner",
@@ -21,6 +20,73 @@ const features = [
     glow: "group-hover:shadow-violet-500/30",
     iconColor: "text-violet-500",
     badge: "Smart",
+  },
+
+  {
+    icon: <MapPin className="w-10 h-10" />,
+    title: "Global Radar",
+    description: "Discover verified stops and transit hubs directly on our interactive map.",
+    link: "/map-search",
+    cta: "Explore Map",
+    gradient: "from-emerald-500/20 to-teal-500/20",
+    glow: "group-hover:shadow-emerald-500/30",
+    iconColor: "text-emerald-500",
+    badge: "Interactive",
+  },
+  {
+    icon: <Shield className="w-10 h-10" />,
+    title: "Safe & Secure",
+    description: "Advanced safety features and incident response tools to ensure a safe journey.",
+    link: "/about",
+    cta: "Learn More",
+    gradient: "from-rose-500/20 to-orange-500/20",
+    glow: "group-hover:shadow-rose-500/30",
+    iconColor: "text-rose-500",
+    badge: "Trusted",
+  },
+  {
+    icon: <Bell className="w-10 h-10" />,
+    title: "Destination Alarm",
+    description: "Mark your destination stop and let us wake you up when you arrive.",
+    link: "/destination-alarm",
+    cta: "Set Alarm",
+    gradient: "from-rose-500/20 to-orange-500/20",
+    glow: "group-hover:shadow-rose-500/30",
+    iconColor: "text-rose-500",
+    badge: "Onboard",
+  },
+  {
+    icon: <Users className="w-10 h-10" />,
+    title: "Community Driven",
+    description: "Contribute to the network by reporting conditions and verifying live details.",
+    link: "/community",
+    cta: "Join Us",
+    gradient: "from-pink-500/20 to-rose-500/20",
+    glow: "group-hover:shadow-pink-500/30",
+    iconColor: "text-pink-500",
+    badge: "Social",
+  },
+  {
+    icon: <Eye className="w-10 h-10" />,
+    title: "Crowd Insights",
+    description: "Know how full a bus is before it arrives with real-time occupancy tracking.",
+    link: "/crowd-insights",
+    cta: "Check Occupancy",
+    gradient: "from-orange-500/20 to-amber-500/20",
+    glow: "group-hover:shadow-orange-500/30",
+    iconColor: "text-orange-500",
+    badge: "Smart",
+  },
+  {
+    icon: <AlertTriangle className="w-10 h-10" />,
+    title: "Service Alerts",
+    description: "Stay ahead of delays, detours, and weather disruptions on your route.",
+    link: "/service-alerts",
+    cta: "View Alerts",
+    gradient: "from-red-500/20 to-rose-500/20",
+    glow: "group-hover:shadow-red-500/30",
+    iconColor: "text-red-500",
+    badge: "Critical",
   },
 ];
 

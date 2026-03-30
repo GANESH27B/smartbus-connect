@@ -4,7 +4,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BusFront, Menu, MapPin, ExternalLink, ChevronDown, Route as RouteIcon, Bot, Map, Home, LogOut, User, Sparkles } from "lucide-react";
+import { BusFront, Menu, MapPin, ExternalLink, ChevronDown, Route as RouteIcon, Bot, Map, Home, LogOut, User, Sparkles, Bell, Bus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -29,6 +29,8 @@ const navLinks = [
   { href: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
   { href: "/trip-planner", label: "AI Planner", icon: <Bot className="h-4 w-4" /> },
   { href: "/map-search", label: "Map", icon: <Map className="h-4 w-4" /> },
+  { href: "/destination-alarm", label: "Stop Alarm", icon: <Bell className="h-4 w-4" /> },
+  { href: "/nearby-stops", label: "Nearby Stops", icon: <Bus className="h-4 w-4" />, isNearby: true },
 ];
 
 export default function Header() {
@@ -85,16 +87,18 @@ export default function Header() {
             <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
               {navLinks.map((link) => (
                 <Link
-                  key={link.href}
+                  key={link.label}
                   href={link.href}
                   className={cn(
-                    "relative px-4 py-2 text-sm font-bold transition-all rounded-xl",
-                    pathname === link.href
-                      ? "text-primary"
-                      : "text-black/70 hover:text-black hover:bg-black/5"
+                    "relative px-4 py-2 text-sm font-bold transition-all rounded-xl flex items-center gap-2",
+                    link.isNearby
+                      ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60"
+                      : pathname === link.href
+                        ? "text-primary"
+                        : "text-black/70 hover:text-black hover:bg-black/5"
                   )}
                 >
-                  {pathname === link.href && (
+                  {!link.isNearby && pathname === link.href && (
                     <motion.div
                       layoutId="active-nav"
                       className="absolute inset-0 bg-primary/10 rounded-xl"
@@ -102,6 +106,13 @@ export default function Header() {
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-2">
+                    {link.isNearby && (
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                    )}
+                    {link.icon}
                     {link.label}
                   </span>
                 </Link>
@@ -215,23 +226,33 @@ export default function Header() {
                       <p className="px-5 text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Core Navigation</p>
                       {navLinks.map((link) => (
                         <Link
-                          key={link.href}
+                          key={link.label}
                           href={link.href}
                           onClick={() => setMenuOpen(false)}
                           className={cn(
                             "flex items-center gap-4 px-5 py-4 text-base font-bold transition-all rounded-[1.25rem]",
-                            pathname === link.href
-                              ? "bg-vibrant-gradient text-white shadow-xl shadow-primary/20"
-                              : "text-white/70 hover:bg-white/5 hover:text-white"
+                            link.isNearby
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                              : pathname === link.href
+                                ? "bg-vibrant-gradient text-white shadow-xl shadow-primary/20"
+                                : "text-white/70 hover:bg-white/5 hover:text-white"
                           )}
                         >
                           <span className={cn(
                             "p-2 rounded-xl",
-                            pathname === link.href ? "bg-white/20" : "bg-white/5"
+                            link.isNearby
+                              ? "bg-emerald-500/20"
+                              : pathname === link.href ? "bg-white/20" : "bg-white/5"
                           )}>
                             {React.cloneElement(link.icon as React.ReactElement, { className: "h-4.5 w-4.5" })}
                           </span>
-                          {link.label}
+                          <span className="flex-1">{link.label}</span>
+                          {link.isNearby && (
+                            <span className="relative flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                            </span>
+                          )}
                         </Link>
                       ))}
                     </div>

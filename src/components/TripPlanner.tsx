@@ -27,7 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ArrowRight, Bot, Bus, Clock, Loader2, MapPin, PersonStanding, TramFront, ExternalLink, Mic, MicOff, Code, ChevronDown, Navigation2 } from "lucide-react";
+import { ArrowRight, Bot, Bus, Clock, Loader2, MapPin, PersonStanding, TramFront, ExternalLink, Mic, MicOff, Code, ChevronDown, Navigation2, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@react-google-maps/api";
@@ -335,6 +335,25 @@ export function TripPlanner() {
                     </FormItem>
                   )}
                 />
+                
+                <div className="flex justify-center -my-2 relative z-10">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full shadow-md bg-white border border-slate-200 text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors h-8 w-8"
+                    onClick={() => {
+                      const start = form.getValues("start");
+                      const dest = form.getValues("destination");
+                      form.setValue("start", dest);
+                      form.setValue("destination", start);
+                    }}
+                    title="Swap locations"
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </div>
+
                 <FormField
                   control={form.control}
                   name="destination"
