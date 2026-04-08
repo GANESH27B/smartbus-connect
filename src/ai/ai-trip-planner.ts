@@ -15,7 +15,7 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function isRateLimitError(err: unknown): boolean {
+function isRetryableError(err: unknown): boolean {
   const msg =
     err instanceof Error
       ? err.message
@@ -24,26 +24,29 @@ function isRateLimitError(err: unknown): boolean {
         : JSON.stringify(err);
   return (
     msg.includes('429') ||
+    msg.includes('503') ||
     msg.toLowerCase().includes('too many requests') ||
     msg.toLowerCase().includes('quota exceeded') ||
-    msg.toLowerCase().includes('rate limit')
+    msg.toLowerCase().includes('rate limit') ||
+    msg.toLowerCase().includes('service unavailable')
   );
 }
 
-async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
-  // Free-tier Gemini APIs can be quite strict; keep retries small and quick.
-  const maxAttempts = 4;
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  // Free-tier Gemini APIs can be strict; use aggressive but persistent retries.
+  const maxAttempts = 8;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (e) {
-      if (!isRateLimitError(e) || attempt === maxAttempts) throw e;
-      const backoffMs = Math.round(1500 * Math.pow(2, attempt - 1)); // 1.5s, 3s, 6s
+      if (!isRetryableError(e) || attempt === maxAttempts) throw e;
+      // Exponential backoff: 2s, 4s, 8s, 16s, 32s, 64s...
+      const backoffMs = Math.round(2000 * Math.pow(2, attempt - 1));
       await sleep(backoffMs);
     }
   }
   // Unreachable, but TS likes a return.
-  throw new Error('Rate limit retry failed unexpectedly.');
+  throw new Error('Retry failed unexpectedly.');
 }
 
 const AiTripPlannerInputSchema = z.object({
@@ -128,7 +131,7 @@ const aiTripPlannerFlow = ai.defineFlow(
   },
   async input => {
     // Generate content using the prompt which now has access to the tool
-    const { output } = await withRateLimitRetry(() => prompt(input));
+    const { output } = await withRetry(() => prompt(input));
     return output!;
   }
 );

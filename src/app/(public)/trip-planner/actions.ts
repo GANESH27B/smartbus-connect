@@ -80,11 +80,24 @@ export async function planTripAction(values: z.infer<typeof formSchema>): Promis
       msg.toLowerCase().includes("quota exceeded") ||
       msg.toLowerCase().includes("rate limit");
 
+    const isServiceUnavailable =
+      msg.includes("503") ||
+      msg.toLowerCase().includes("service unavailable") ||
+      msg.toLowerCase().includes("high demand");
+
     if (isRateLimit) {
       return {
         success: false,
         error:
-          "Gemini API rate limit reached (quota exceeded). Please wait ~30–60 seconds and try again, or enable billing/increase quota in Google AI Studio.",
+          "Gemini API rate limit reached. Please wait a moment and try again.",
+      };
+    }
+
+    if (isServiceUnavailable) {
+      return {
+        success: false,
+        error:
+          "The AI service is currently experiencing high demand. We've attempted multiple retries, but the server is still busy. Please try again in a minute.",
       };
     }
 
