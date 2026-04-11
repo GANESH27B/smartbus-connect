@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Autocomplete Test</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA3P5e8Ucw0wV5Nq8kbvlvkLHzyfpwtQD0&libraries=places"></script>
+    <script>
+        function initAutocomplete() {
+            const input = document.getElementById('pac-input');
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            window.autocompleteLoaded = true;
+        }
+    </script>
+</head>
+<body onload="initAutocomplete()">
+    <input id="pac-input" type="text" placeholder="Enter a location" style="width: 300px;">
+    <div id="map" style="height: 400px; width: 100%; margin-top: 20px;"></div>
+    <script>
+        // Also load a map to see if it shows the error overlay
+        function initMap() {
+            new google.maps.Map(document.getElementById('map'), {
+                center: {lat: -34.397, lng: 150.644},
+                zoom: 8
+            });
+        }
+        window.onload = function() {
+            initAutocomplete();
+            initMap();
+        }
+    </script>
+</body>
+</html>

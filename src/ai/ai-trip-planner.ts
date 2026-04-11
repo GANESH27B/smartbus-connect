@@ -28,7 +28,11 @@ function isRetryableError(err: unknown): boolean {
     msg.toLowerCase().includes('too many requests') ||
     msg.toLowerCase().includes('quota exceeded') ||
     msg.toLowerCase().includes('rate limit') ||
-    msg.toLowerCase().includes('service unavailable')
+    msg.toLowerCase().includes('service unavailable') ||
+    msg.toLowerCase().includes('fetch failed') ||
+    msg.toLowerCase().includes('network error') ||
+    msg.toLowerCase().includes('timeout') ||
+    msg.toLowerCase().includes('und_err_connect_timeout')
   );
 }
 
